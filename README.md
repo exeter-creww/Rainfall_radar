@@ -3,7 +3,10 @@
 
 To extract data from Metoffice rainfall radar. Includes facility to extract rainfall statistics for a polygon of choice (e.g. a river catchment boundary)
 Instructions for use of Radar files from the Metoffice
+
 Ben Jackson (b.w.jackson@exeter.ac.uk)
+
+
 1)	Downloading the data
 Rain radar data can be downloaded from the CEDA website, it is either available for Europe (http://catalogue.ceda.ac.uk/uuid/d5ae8b92d8c884690592ce619f2eca07), or for the UK alone (http://catalogue.ceda.ac.uk/uuid/f91b2c5399c5bf689e29bb15ab45da8a). 
 The spatial resolution of both datasets is 5km, and the time resolution is every 15 minutes (please note: the description of the UK dataset states that data is available every 5 minutes, however for data I’ve looked at this is instead at the 15 minute resolution).
