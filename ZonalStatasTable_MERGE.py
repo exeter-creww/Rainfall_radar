@@ -3,7 +3,8 @@ from arcpy.sa import *
 from arcpy import env
 import sys
 import glob
-
+from datetime import datetime
+import pandas as pd
 # arcpy.env.extent = r"E:\Users\bwj202\OneDrive - University of Exeter\GIS\SWW_area_wo_Bournemouth.shp"
 
 # Check out the ArcGIS Spatial Analyst extension license
@@ -13,17 +14,16 @@ arcpy.env.overwriteOutput = True
 arcpy.CheckOutExtension("Spatial")
 
 
-Data_folder = os.path.abspath("...")
+Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2004_2011")
 
-bound_shp = os.path.abspath("...")
+bound_shp = os.path.abspath("C:/HG_Projects/SideProjects/Rainfall_radar/Test_data/Otter_catchment/river_otter_catch.shp")
 
-Export_folder = os.path.abspath("...")
+Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Rainfall_radar/Test_Exports")
 
 area_field_name = "FieldName"
 
-start_date = ""
-end_date =""
-
+start_date = '200703010600'
+end_date = '200704010600'
 
 scratch = r"in_memory" # consider making this a geodatabase - possible RAM limitations may occur...
 env.workspace = r"in_memory"  # os.getcwd()
@@ -45,6 +45,32 @@ def main():
             sys.exit("##### Cannot create Export Folder #####"
                      "### Check permissions and file path.###")
     shp_proc = check_bound_shp(bound_shp, area_field_name)
+    raster_list = get_correct_time (Data_folder, start_date, end_date)
+
+    shp_procFL = arcpy.MakeFeatureLayer_management(shp_proc, "lay_selec", "", r"in_memory")
+
+    with arcpy.da.SearchCursor(shp_procFL, ['Zone_no', 'Area_Name']) as cursor:
+        for row in cursor:
+            expr = """{0} = '{1}'""".format('Zone_no', row[0])
+            # print(expr)
+
+            arcpy.SelectLayerByAttribute_management(shp_procFL,
+                                                    "NEW_SELECTION",
+                                                    expr)
+            temp_zone = r"in_memory/OS_tempZone"
+            arcpy.CopyFeatures_management(shp_procFL, temp_zone)
+
+            extent = arcpy.Describe(temp_zone).extent
+            xmin = extent.XMin
+            ymin = extent.YMin
+            xmax = extent.XMax
+            ymax = extent.YMax
+
+            arcpy.env.extent = (xmin, ymin, xmax, ymax)
+
+            iterateRasters(temp_zone, raster_list, Export_folder)
+
+
 
 def check_bound_shp(boundary_shp, f_name):
     sZone_fields = [f.name for f in arcpy.ListFields(boundary_shp)]
@@ -98,7 +124,7 @@ def check_bound_shp(boundary_shp, f_name):
     else:
         if f_name is None or f_name == "":
             sys.exit("######## Error - Aborting script ############ \n"
-                     "Multiple shpaes provided without unique names \n"
+                     "Multiple shapes provided without unique names \n"
                      "### Add new field and create unique names ###")
 
         if f_name in sZone_fields:
@@ -109,34 +135,61 @@ def check_bound_shp(boundary_shp, f_name):
 def get_correct_time (ras_folder, start, end):
     print("retrieving raster names for requested time period: {0} - {1}".format(start, end))
     file_list = []
-    start = '200712100500'
-    end =   '200712100700'
-    diff = (int(end) -int(start))/25
+
     for name in glob.glob(os.path.join(ras_folder, "*.tif")):
         file_list.append(name)# file_list.append(name)
     file_list.sort(key=lambda x: x[106:118])
 
-    s_row = [i for i, x in enumerate(file_list) if x[106:118] == start]
-    s_row = int(s_row[0])
-    e_row = [i for i, x in enumerate(file_list) if x[106:118] == end]
-    e_row = int(e_row[0])
+    date_list = [s[106:118] for s in file_list] # gets list of dates form file list
+    date_list = list(map(int, date_list))  # converts the list of dates to integers.
+
+    if int(start) in date_list:
+        s_row = [i for i, x in enumerate(file_list) if x[106:118] == start]
+        s_row = int(s_row[0])
+    else:
+        closest_start = min(date_list, key=lambda x:abs(x-int(start)))
+        s_row = [i for i, x in enumerate(file_list) if x[106:118] == str(closest_start)]
+        s_row = int(s_row[0])
+
+    if int(end) in date_list:
+        e_row = [i for i, x in enumerate(file_list) if x[106:118] == end]
+        e_row = int(e_row[0])
+    else:
+        closest_end = max(date_list, key=lambda x:abs(x-int(end)))
+        e_row = [i for i, x in enumerate(file_list) if x[106:118] == str(closest_end)]
+        e_row = int(e_row[0])
+
 
     selec_file_list = file_list[s_row:e_row]
 
-def iterateRasters(bound_area, raster):
+    return selec_file_list
 
-    for filename in os.listdir(bound_area):
-     if filename.split("_")[0] == "Bound":
-      if filename.endswith(".shp"):
-       print(filename)
-       inZoneData = bound_area + "/" + filename
-       for name in os.listdir(Data_folder):
-         if name.endswith(".tif"):
-           infile = Data_folder + "/" + name
-           print(infile)
-           outTable = Export_folder + "/" + "Table" + name.split("_")[2] + "_" + filename.split("_us")[0]
-           print(outTable)
-           outZSaT = arcpy.sa.ZonalStatisticsAsTable(inZoneData, "Zone_no", infile, outTable, "DATA", "ALL")
+
+def iterateRasters(bound_area, ras_list, Export_folder):
+
+    for ras in ras_list:
+        date = ras[106:118]
+        datetime_object = datetime.strptime(date, "%Y%m%d%H%M%S")
+        outTable = os.path.join(r"in_memory", "rain_radar_{0}").format(date)
+        arcpy.sa.ZonalStatisticsAsTable(bound_area, "Zone_no", ras, outTable, "DATA", "ALL")
+
+        arr = arcpy.da.TableToNumPyArray(outTable, ('SUM', 'MEAN', 'MEDIAN', 'MAX', 'MIN', 'STD'))
+        arr['datetime'] = datetime_object
+
+
+
+    # for filename in os.listdir(bound_area):
+    #  if filename.split("_")[0] == "Bound":
+    #   if filename.endswith(".shp"):
+    #    print(filename)
+    #    inZoneData = bound_area + "/" + filename
+    #    for name in os.listdir(Data_folder):
+    #      if name.endswith(".tif"):
+    #        infile = Data_folder + "/" + name
+    #        print(infile)
+    #        outTable = Export_folder + "/" + "Table" + name.split("_")[2] + "_" + filename.split("_us")[0]
+    #        print(outTable)
+    #        outZSaT = arcpy.sa.ZonalStatisticsAsTable(inZoneData, "Zone_no", infile, outTable, "DATA", "ALL")
 
     env.workspace = Export_folder
 
