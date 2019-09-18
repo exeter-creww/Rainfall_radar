@@ -1,3 +1,8 @@
+# Script
+
+
+
+
 import os
 import arcpy
 import multiprocessing
@@ -18,8 +23,8 @@ arcpy.env.overwriteOutput = True
 arcpy.CheckOutExtension("Spatial")
 
 
-Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2012_2018")
-
+# Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2012_2018")
+Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/Data/format_tif")
 bound_shp = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_data/Otter_catchment/New_OtterCatch.shp")
 
 Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
@@ -29,7 +34,7 @@ Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Tes
 area_field_name = ""
 
 start_date = '201201010000'
-end_date = '201202010000'
+end_date = '201501010000'
 
 scratch = r"in_memory" # consider making this a geodatabase - possible RAM limitations may occur...
 env.workspace = r"in_memory"  # os.getcwd()
