@@ -16,7 +16,7 @@ def main():
     os.chdir(ddir)
 
     # login to FTP
-    f = ftplib.FTP("ftp.ceda.ac.uk", "hgraham", "1Airblunt1")
+    f = ftplib.FTP("ftp.ceda.ac.uk", "***username***", "***Password***")
 
     # loop through years
     for year in range(2019, 2020):

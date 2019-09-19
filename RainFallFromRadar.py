@@ -33,8 +33,8 @@ Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Tes
 
 area_field_name = ""
 
-start_date = '201201010000'
-end_date = '201501010000'
+start_date = '201909050000'
+end_date = '201909162355'
 
 scratch = r"in_memory" # consider making this a geodatabase - possible RAM limitations may occur...
 env.workspace = r"in_memory"  # os.getcwd()
@@ -42,24 +42,24 @@ arcpy.env.scratchWorkspace = r"in_memory"
 
 
 def main():
-    if os.path.exists(Export_folder):  ### JUST FOR TESTING¬¬¬
-        shutil.rmtree(Export_folder)
+    # if os.path.exists(Export_folder):  ### JUST FOR TESTING¬¬¬
+    #     shutil.rmtree(Export_folder)
     startTime = datetime.now()
-    print('start time = {0}'.format(startTime))
-
-    try:
-        # If directory has not yet been created
-        os.makedirs(Export_folder)
-    except OSError as e:
-        # If directory has already been created and is accessible
-        if os.path.exists(Export_folder):
-            arcpy.AddMessage("Error creating Export Directory. Directory Already Exists\n"
-                             "############ Delete before running or rename. #############")
-            sys.exit("Error creating Export Directory. Directory Already Exists\n"
-                             "############ Delete before running or rename. #############")
-        else:  # Directory cannot be created because of file permissions, etc.
-            sys.exit("##### Cannot create Export Folder #####"
-                     "### Check permissions and file path.###")
+    # print('start time = {0}'.format(startTime))
+    #
+    # try:
+    #     # If directory has not yet been created
+    #     os.makedirs(Export_folder)
+    # except OSError as e:
+    #     # If directory has already been created and is accessible
+    #     if os.path.exists(Export_folder):
+    #         arcpy.AddMessage("Error creating Export Directory. Directory Already Exists\n"
+    #                          "############ Delete before running or rename. #############")
+    #         sys.exit("Error creating Export Directory. Directory Already Exists\n"
+    #                          "############ Delete before running or rename. #############")
+    #     else:  # Directory cannot be created because of file permissions, etc.
+    #         sys.exit("##### Cannot create Export Folder #####"
+    #                  "### Check permissions and file path.###")
 
 
     scratch_gdb = os.path.join(Export_folder, "scratchFolder")
@@ -91,7 +91,9 @@ def main():
 
             reqData = paralellProcess(temp_zone, raster_list)
 
-            reqData = reqData.set_index('datetime').asfreq('15Min')
+            reqData = reqData.set_index('datetime').asfreq('5Min')
+
+            reqData = reqData.resample('15Min').sum()
 
             savePath = os.path.join(Export_folder, str(row[1]) + '_' + start_date + '_' + end_date + '.csv')
             if os.path.exists(savePath):
@@ -164,25 +166,25 @@ def get_correct_time (ras_folder, start, end):
 
     for name in glob.glob(os.path.join(ras_folder, "*.tif")):
         file_list.append(name)# file_list.append(name)
-    file_list.sort(key=lambda x: x[-34:-22])
+    file_list.sort(key=lambda x: x[-30:-18])
 
-    date_list = [s[-34:-22] for s in file_list] # gets list of dates form file list
+    date_list = [s[-30:-18] for s in file_list] # gets list of dates form file list
     date_list = list(map(int, date_list))  # converts the list of dates to integers.
 
     if int(start) in date_list:
-        s_row = [i for i, x in enumerate(file_list) if x[-34:-22] == start]
+        s_row = [i for i, x in enumerate(file_list) if x[-30:-18] == start]
         s_row = int(s_row[0])
     else:
         closest_start = min(date_list, key=lambda x:abs(x-int(start)))
-        s_row = [i for i, x in enumerate(file_list) if x[-34:-22] == str(closest_start)]
+        s_row = [i for i, x in enumerate(file_list) if x[-30:-18] == str(closest_start)]
         s_row = int(s_row[0])
 
     if int(end) in date_list:
-        e_row = [i for i, x in enumerate(file_list) if x[-34:-22] == end]
+        e_row = [i for i, x in enumerate(file_list) if x[-30:-18] == end]
         e_row = int(e_row[0])
     else:
         closest_end = max(date_list, key=lambda x:abs(x-int(end)))
-        e_row = [i for i, x in enumerate(file_list) if x[-34:-22] == str(closest_end)]
+        e_row = [i for i, x in enumerate(file_list) if x[-30:-18] == str(closest_end)]
         e_row = int(e_row[0])
 
 
@@ -196,7 +198,7 @@ def iterateRasters(bound_area, ras_list):
     pandDFlist = []
 
     for ras in ras_list:
-        date = ras[-34:-22]
+        date = ras[-30:-18]
         dateForm = date[:4] + '/' + date[4:6] + '/' + date[6:8] + ' ' + date[8:10] + ':' + date[10:12]
         datetime_object = datetime.strptime(dateForm, "%Y/%m/%d %H:%M")
         outTable = os.path.join(r'in_memory', "rain_radar_{0}").format(date)
@@ -206,6 +208,7 @@ def iterateRasters(bound_area, ras_list):
         pandTab = pd.DataFrame(arr)
         pandTab['datetime'] = datetime_object
         pandTab = pandTab.rename(columns={"SUM": "rainfall"})
+        pandTab['rainfall'] = pandTab['rainfall']/12
         pandDFlist.append(pandTab)
 
     outPDdf = pd.concat(pandDFlist)
