@@ -1,4 +1,5 @@
 # This script extracts all of the downloaded data to a new folder.
+# issue with this is that with very large quantity of data it will all be extracted which will exceed 10TB
 
 
 import os

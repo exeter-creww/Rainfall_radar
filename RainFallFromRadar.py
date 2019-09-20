@@ -1,7 +1,5 @@
-# Script
-
-
-
+# Script builds rainfall time series from Nimrod MetOffice rainfall data. Data must already be converted into an
+# ESRI readable Raster Format.
 
 import os
 import arcpy
@@ -14,7 +12,6 @@ import pandas as pd
 from functools import partial
 from datetime import datetime
 import shutil
-# arcpy.env.extent = r"E:\Users\bwj202\OneDrive - University of Exeter\GIS\SWW_area_wo_Bournemouth.shp"
 
 # Check out the ArcGIS Spatial Analyst extension license
 arcpy.env.cartographicCoordinateSystem = arcpy.SpatialReference("British National Grid")
@@ -36,8 +33,11 @@ area_field_name = ""
 start_date = '201909050000'
 end_date = '201909162355'
 
-scratch = r"in_memory" # consider making this a geodatabase - possible RAM limitations may occur...
-env.workspace = r"in_memory"  # os.getcwd()
+timestep = '15Min'   # set the desired time step for rainfall time series minimum of '5Min'. other options: 'D' for daily,
+                     # 'W' for weekly. for more info look up pandas resample.
+
+scratch = r"in_memory"
+env.workspace = r"in_memory"
 arcpy.env.scratchWorkspace = r"in_memory"
 
 
@@ -45,21 +45,21 @@ def main():
     # if os.path.exists(Export_folder):  ### JUST FOR TESTING¬¬¬
     #     shutil.rmtree(Export_folder)
     startTime = datetime.now()
-    # print('start time = {0}'.format(startTime))
+    print('start time = {0}'.format(startTime))
     #
-    # try:
-    #     # If directory has not yet been created
-    #     os.makedirs(Export_folder)
-    # except OSError as e:
-    #     # If directory has already been created and is accessible
-    #     if os.path.exists(Export_folder):
-    #         arcpy.AddMessage("Error creating Export Directory. Directory Already Exists\n"
-    #                          "############ Delete before running or rename. #############")
-    #         sys.exit("Error creating Export Directory. Directory Already Exists\n"
-    #                          "############ Delete before running or rename. #############")
-    #     else:  # Directory cannot be created because of file permissions, etc.
-    #         sys.exit("##### Cannot create Export Folder #####"
-    #                  "### Check permissions and file path.###")
+    try:
+        # If directory has not yet been created
+        os.makedirs(Export_folder)
+    except OSError as e:
+        # If directory has already been created and is accessible
+        if os.path.exists(Export_folder):
+            # arcpy.AddMessage("Error creating Export Directory. Directory Already Exists\n"
+            #                  "############ Delete before running or rename. #############")
+            sys.exit("Error creating Export Directory. Directory Already Exists\n"
+                             "############ Delete before running or rename. #############")
+        else:  # Directory cannot be created because of file permissions, etc.
+            sys.exit("##### Cannot create Export Folder #####"
+                     "### Check permissions and file path.###")
 
 
     scratch_gdb = os.path.join(Export_folder, "scratchFolder")
@@ -93,7 +93,7 @@ def main():
 
             reqData = reqData.set_index('datetime').asfreq('5Min')
 
-            reqData = reqData.resample('15Min').sum()
+            reqData = reqData.resample(timestep).sum()
 
             savePath = os.path.join(Export_folder, str(row[1]) + '_' + start_date + '_' + end_date + '.csv')
             if os.path.exists(savePath):
@@ -207,8 +207,10 @@ def iterateRasters(bound_area, ras_list):
         arr = arcpy.da.TableToNumPyArray(outTable, ('SUM', 'MEAN', 'MAX', 'MIN', 'STD'))
         pandTab = pd.DataFrame(arr)
         pandTab['datetime'] = datetime_object
-        pandTab = pandTab.rename(columns={"SUM": "rainfall"})
-        pandTab['rainfall'] = pandTab['rainfall']/12
+        pandTab = pandTab.rename(columns={"SUM": "tot_rainfall"})
+        pandTab['tot_rainfall'] = pandTab['tot_rainfall']/12
+        pandTab = pandTab.rename(columns={"MEAN": "mean_rainfall"})
+        pandTab['mean_rainfall'] = pandTab['mean_rainfall'] / 12
         pandDFlist.append(pandTab)
 
     outPDdf = pd.concat(pandDFlist)
