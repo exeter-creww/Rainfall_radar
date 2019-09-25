@@ -30,7 +30,8 @@ def convert_dat_to_asc(outdir, file_list):
     arcpy.env.outputCoordinateSystem = coor_system
     arcpy.env.compression = "LZ77"
     for name in file_list:
-
+     for attempt in range(0,20):     ##Try again if this function fails
+      try:  
         fname = os.path.basename(name)
         fname = fname[:-3] + 'asc'
 
@@ -53,7 +54,11 @@ def convert_dat_to_asc(outdir, file_list):
         arcpy.DefineProjection_management(saveras_path, coor_system)
 
         os.remove(asc_name)
-
+      except:
+        continue
+      else:
+        break
+        
 def paralellProcess(ras_folder, expdir):
     file_list = []
 
