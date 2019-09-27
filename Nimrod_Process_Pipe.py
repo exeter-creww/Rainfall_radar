@@ -54,7 +54,10 @@ def unzip_and_convert(ddir, edir):
     for chunk in tqdm(all_files):
         # print('extracting file: {0}'.format(name))
         for name in chunk:
-            shutil.unpack_archive(filename=name, extract_dir=edir)
+            try:
+                shutil.unpack_archive(filename=name, extract_dir=edir)
+            except shutil.ReadError:
+                pass
 
         for name in glob.glob(os.path.join(edir, "*_1km-composite.dat.gz")):
             # print('decompressing file: {0}'.format(name))
