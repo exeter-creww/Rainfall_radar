@@ -14,11 +14,14 @@ from functools import partial
 from datetime import datetime
 import time
 
-# def main():
-def main(ddirec, edirec):
+def main():
+# def main(ddirec, edirec):
     startTime = datetime.now()
     print('start time = {0}'.format(startTime))
 
+
+    ddirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Raw')
+    edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed')
     # ddir=os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar")
     # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/")
     # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Ins")
@@ -50,16 +53,18 @@ def unzip_and_convert(ddir, edir):
     n = 50  # number of days per chunk
 
     all_files = [all_files[i:i + n] for i in range(0, len(all_files), n)]
-
+    print(all_files)
     for chunk in tqdm(all_files):
         # print('extracting file: {0}'.format(name))
         for name in chunk:
             try:
                 shutil.unpack_archive(filename=name, extract_dir=edir)
-            except shutil.ReadError:
-                pass
-
-        for name in glob.glob(os.path.join(edir, "*_1km-composite.dat.gz")):
+            except shutil.ReadError as e:
+                print(e)
+        work_chunk = glob.glob(os.path.join(edir, "*_1km-composite.dat.gz"))
+        if len(work_chunk) < 1:
+            continue
+        for name in work_chunk:
             # print('decompressing file: {0}'.format(name))
 
             inFile = gzip.GzipFile(name, 'rb')
@@ -140,6 +145,6 @@ def paralellProcess(ras_folder):
     # sys.stdout = sys.__stdout__  # enable printing
 
 if __name__ == "__main__":
-    # main()
-    main(sys.argv[1],
-         sys.argv[2])
+    main()
+    # main(sys.argv[1],
+    #      sys.argv[2])
