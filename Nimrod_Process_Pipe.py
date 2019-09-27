@@ -47,7 +47,7 @@ def unzip_and_convert(ddir, edir):
 
     all_files = glob.glob(os.path.join(ddir, "*_1km-composite.dat.gz.tar"))
 
-    n = 365 #number of days per chunk
+    n = 50  # number of days per chunk
 
     all_files = [all_files[i:i + n] for i in range(0, len(all_files), n)]
 
@@ -108,11 +108,11 @@ def convert_dat_to_asc(outdir, file_list):
                 os.remove(asc_name)
             if os.path.exists(name):
                 os.remove(name)
-    return()
+        #  I removed the return command - not sure if that was causing any issues?
 
 
 def paralellProcess(ras_folder):
-    sys.stdout = open(os.devnull, 'w')  # suppress printing
+    # sys.stdout = open(os.devnull, 'w')  # suppress printing
     file_list = []
 
     for name in glob.glob(os.path.join(ras_folder, "*_1km-composite.dat")):
@@ -120,7 +120,7 @@ def paralellProcess(ras_folder):
 
 
     n_feat = len(file_list)
-    num_cores = multiprocessing.cpu_count() - 1
+    num_cores = multiprocessing.cpu_count() - 3  # lowered number of cores to see if that helps...
     # print('n available cores  = {0}'.format(num_cores))
     n_split = int(n_feat/num_cores)
 
@@ -137,7 +137,7 @@ def paralellProcess(ras_folder):
     pool.close()
     pool.join()
 
-    sys.stdout = sys.__stdout__  # enable printing
+    # sys.stdout = sys.__stdout__  # enable printing
 
 if __name__ == "__main__":
     # main()
