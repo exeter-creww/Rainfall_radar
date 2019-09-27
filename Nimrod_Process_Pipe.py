@@ -86,27 +86,30 @@ def convert_dat_to_asc(outdir, file_list):
         fname = os.path.basename(name)
         fname = fname[:-3] + 'asc'
 
-        # print(fname)
-        # print('coverting file to tif: {0}'.format(fname))
-
-        file_id = open(name, 'rb')
-
-        a = nimrod.Nimrod(file_id)
-        os.chdir(outdir)
-        a.extract_asc(open(fname, 'w'))
-
-        # print('defining Coord Ref System')
         asc_name = os.path.join(outdir, fname)
         saveras_path = os.path.join(outdir, fname[:-3] + 'tif')
 
-        # load_ras = arcpy.Raster(asc_name)
-        # load_ras.save(saveras_path)
-        arcpy.ASCIIToRaster_conversion(asc_name, saveras_path, data_type="INTEGER")
-        arcpy.DefineProjection_management(saveras_path, coor_system)
+        try:
+            file_id = open(name, 'rb')
 
-        os.remove(asc_name)
-        os.remove(name)
+            a = nimrod.Nimrod(file_id)
+            os.chdir(outdir)
+            a.extract_asc(open(fname, 'w'))
+
+            # print('defining Coord Ref System')
+
+            arcpy.ASCIIToRaster_conversion(asc_name, saveras_path, data_type="INTEGER")
+            arcpy.DefineProjection_management(saveras_path, coor_system)
+
+            os.remove(asc_name)
+            os.remove(name)
+        except Exception: # This is a vague error catch but if there is any issue with the above - rather it continues
+            if os.path.exists(asc_name):
+                os.remove(asc_name)
+            if os.path.exists(name):
+                os.remove(name)
     return()
+
 
 def paralellProcess(ras_folder):
     sys.stdout = open(os.devnull, 'w')  # suppress printing
