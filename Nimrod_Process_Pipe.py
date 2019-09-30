@@ -7,9 +7,14 @@ import glob
 import shutil
 import gzip
 import nimrod
-import arcpy
+# import arcpy
 import multiprocessing
 from functools import partial
+
+import rasterio
+from rasterio.crs import CRS
+
+import numpy as np
 
 from datetime import datetime
 import time
@@ -20,12 +25,15 @@ def main():
     print('start time = {0}'.format(startTime))
 
 
-    ddirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Raw')
-    edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed')
+    # ddirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Raw')
+    # edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed')
     # ddir=os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar")
     # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/")
-    # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Ins")
-    # edirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Out")
+
+    # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/10_Day_Test_Ins")
+    # edirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/10_Day_Test_Out_rast")
+    ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Ins")
+    edirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Out_rast")
     # ddirec = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data")
     # edirec = os.path.join(ddirec, 'Extracted2')
 
@@ -54,38 +62,43 @@ def unzip_and_convert(ddir, edir):
 
     all_files = [all_files[i:i + n] for i in range(0, len(all_files), n)]
     print(all_files)
+
+    time.sleep(1)
     for chunk in tqdm(all_files):
         # print('extracting file: {0}'.format(name))
         for name in chunk:
             try:
                 shutil.unpack_archive(filename=name, extract_dir=edir)
-            except shutil.ReadError as e:
-                print(e)
+            except shutil.ReadError:
+                pass
         work_chunk = glob.glob(os.path.join(edir, "*_1km-composite.dat.gz"))
         if len(work_chunk) < 1:
             continue
         for name in work_chunk:
             # print('decompressing file: {0}'.format(name))
-
-            inFile = gzip.GzipFile(name, 'rb')
-            s = inFile.read()
-            inFile.close()
-            output = open(name[:-3], 'wb')
-            output.write(s)
-            output.close()
-
+            try:
+                inFile = gzip.GzipFile(name, 'rb')
+                s = inFile.read()
+                inFile.close()
+                output = open(name[:-3], 'wb')
+                output.write(s)
+                output.close()
+            except OSError:
+                pass
             # print("now delete intermediate file...")
             os.remove(name)
+
         paralellProcess(edir)
 
 
         # call convert
 def convert_dat_to_asc(outdir, file_list):
-    arcpy.SetLogHistory(False)
-    coor_system = arcpy.SpatialReference("British National Grid")
-    arcpy.env.cartographicCoordinateSystem = coor_system
-    arcpy.env.outputCoordinateSystem = coor_system
-    arcpy.env.compression = "LZ77"
+    # arcpy.SetLogHistory(False)
+    epsg = str(27700)
+    # coor_system = arcpy.SpatialReference("British National Grid")
+    # arcpy.env.cartographicCoordinateSystem = coor_system
+    # arcpy.env.outputCoordinateSystem = coor_system
+    # arcpy.env.compression = "LZ77"
     for name in file_list:
 
         fname = os.path.basename(name)
@@ -103,12 +116,37 @@ def convert_dat_to_asc(outdir, file_list):
 
             # print('defining Coord Ref System')
 
-            arcpy.ASCIIToRaster_conversion(asc_name, saveras_path, data_type="INTEGER")
-            arcpy.DefineProjection_management(saveras_path, coor_system)
+            #with rasterio
+            src = rasterio.open(asc_name)
+            array = src.read(1)
 
-            os.remove(asc_name)
-            os.remove(name)
-        except Exception: # This is a vague error catch but if there is any issue with the above - rather it continues
+            array = array.astype(np.int16)
+            out_meta = src.meta.copy()
+
+            out_meta.update(
+                {"driver": "GTiff", "count": 1, "dtype": rasterio.int16,
+                 "crs": CRS.from_epsg(epsg), "compress": "lzw"})
+
+            # print("exporting output raster")
+
+            with rasterio.open(saveras_path, "w", **out_meta) as dest:
+                dest.write(array.astype(rasterio.int16), 1)
+
+            src.close()
+            # with arcpy
+            # arcpy.ASCIIToRaster_conversion(asc_name, saveras_path, data_type="INTEGER")
+            # arcpy.DefineProjection_management(saveras_path, coor_system)
+
+            if os.path.exists(asc_name):
+                os.remove(asc_name)
+            if os.path.exists(name):
+                os.remove(name)
+
+        except Exception as e: # This is a vague error catch but if there is any issue with the above - rather it continues
+            print(e)
+            if 'src' in locals():
+                src.close()
+
             if os.path.exists(asc_name):
                 os.remove(asc_name)
             if os.path.exists(name):
