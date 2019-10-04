@@ -25,23 +25,27 @@ def main():
     print('start time = {0}'.format(startTime))
 
 
-    # ddirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Raw')
-    # edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed')
-    # ddir=os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar")
-    # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/")
+    ddirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Raw')
+    edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed')
+
+
 
     # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/10_Day_Test_Ins")
     # edirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/10_Day_Test_Out_rast")
-    ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Ins")
-    edirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Out_rast")
-    # ddirec = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data")
-    # edirec = os.path.join(ddirec, 'Extracted2')
+    # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Ins")
+    # edirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/2_Day_Test_Out_rast")
+
 
 
     if not os.path.isdir(edirec):
         os.mkdir(edirec)
 
-    unzip_and_convert(ddirec, edirec)
+
+    fileList = glob.glob(os.path.join(ddirec, "*_1km-composite.dat.gz.tar"))
+
+    # fileList = checklist(all_files, edirec)
+
+    unzip_and_convert(ddirec, edirec, fileList)
 
     finTime = datetime.now() - startTime
 
@@ -50,18 +54,30 @@ def main():
     print("script completed. \n"
           "Processing time = {0}".format(finTime))
 
+# def checklist(file_List, edir):
+#     print("checking to see if Raster(s) already exists... \n"
+#           "If so - remove from processing list.")
+#     print(len(file_List))
+#     skip_list = glob.glob(os.path.join(edir, "*_1km-composite.tif"))
+#     skip_list = [int(x[-30:-22]) for x in skip_list]
+#     skip_list = list(dict.fromkeys(skip_list))
+#     for x in file_List:
+#         checkVal = int(x[-33:-25])
+#         if checkVal in skip_list:
+#             print(checkVal)
+#             file_List.remove(x)
+#     print(len(file_List))
+#     print(file_List[0:10])
+#     return file_List
 
-
-def unzip_and_convert(ddir, edir):
+def unzip_and_convert(ddir, edir, file_list):
 
     print("extracting files begins...")
 
-    all_files = glob.glob(os.path.join(ddir, "*_1km-composite.dat.gz.tar"))
+    n = 100  # number of days per chunk
 
-    n = 50  # number of days per chunk
-
-    all_files = [all_files[i:i + n] for i in range(0, len(all_files), n)]
-    print(all_files)
+    all_files = [file_list[i:i + n] for i in range(0, len(file_list), n)]
+    print(file_list)
 
     time.sleep(1)
     for chunk in tqdm(all_files):
@@ -83,10 +99,16 @@ def unzip_and_convert(ddir, edir):
                 output = open(name[:-3], 'wb')
                 output.write(s)
                 output.close()
-            except OSError:
+                os.remove(name)
+            except Exception:
                 pass
             # print("now delete intermediate file...")
-            os.remove(name)
+            try:
+                if 'output' in locals():
+                    output.close()
+                    os.remove(name)
+            except Exception:
+                pass
 
         paralellProcess(edir)
 
@@ -107,50 +129,56 @@ def convert_dat_to_asc(outdir, file_list):
         asc_name = os.path.join(outdir, fname)
         saveras_path = os.path.join(outdir, fname[:-3] + 'tif')
 
-        try:
-            file_id = open(name, 'rb')
-
-            a = nimrod.Nimrod(file_id)
-            os.chdir(outdir)
-            a.extract_asc(open(fname, 'w'))
-
-            # print('defining Coord Ref System')
-
-            #with rasterio
-            src = rasterio.open(asc_name)
-            array = src.read(1)
-
-            array = array.astype(np.int16)
-            out_meta = src.meta.copy()
-
-            out_meta.update(
-                {"driver": "GTiff", "count": 1, "dtype": rasterio.int16,
-                 "crs": CRS.from_epsg(epsg), "compress": "lzw"})
-
-            # print("exporting output raster")
-
-            with rasterio.open(saveras_path, "w", **out_meta) as dest:
-                dest.write(array.astype(rasterio.int16), 1)
-
-            src.close()
-            # with arcpy
-            # arcpy.ASCIIToRaster_conversion(asc_name, saveras_path, data_type="INTEGER")
-            # arcpy.DefineProjection_management(saveras_path, coor_system)
-
+        if os.path.exists(saveras_path):
             if os.path.exists(asc_name):
                 os.remove(asc_name)
             if os.path.exists(name):
                 os.remove(name)
+        else:
+            try:
+                file_id = open(name, 'rb')
 
-        except Exception as e: # This is a vague error catch but if there is any issue with the above - rather it continues
-            print(e)
-            if 'src' in locals():
+                a = nimrod.Nimrod(file_id)
+                os.chdir(outdir)
+                a.extract_asc(open(fname, 'w'))
+
+                # print('defining Coord Ref System')
+
+                #with rasterio
+                src = rasterio.open(asc_name)
+                array = src.read(1)
+
+                array = array.astype(np.int16)
+                out_meta = src.meta.copy()
+
+                out_meta.update(
+                    {"driver": "GTiff", "count": 1, "dtype": rasterio.int16,
+                     "crs": CRS.from_epsg(epsg), "compress": "lzw"})
+
+                # print("exporting output raster")
+
+                with rasterio.open(saveras_path, "w", **out_meta) as dest:
+                    dest.write(array.astype(rasterio.int16), 1)
+
                 src.close()
+                # with arcpy
+                # arcpy.ASCIIToRaster_conversion(asc_name, saveras_path, data_type="INTEGER")
+                # arcpy.DefineProjection_management(saveras_path, coor_system)
 
-            if os.path.exists(asc_name):
-                os.remove(asc_name)
-            if os.path.exists(name):
-                os.remove(name)
+                if os.path.exists(asc_name):
+                    os.remove(asc_name)
+                if os.path.exists(name):
+                    os.remove(name)
+
+            except Exception as e: # This is a vague error catch but if there is any issue with the above - rather it continues
+                print(e)
+                if 'src' in locals():
+                    src.close()
+
+                if os.path.exists(asc_name):
+                    os.remove(asc_name)
+                if os.path.exists(name):
+                    os.remove(name)
         #  I removed the return command - not sure if that was causing any issues?
 
 
