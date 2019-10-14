@@ -22,16 +22,19 @@ arcpy.CheckOutExtension("Spatial")
 
 # Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2012_2018")
 Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed")
-bound_shp = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_data/Otter_catchment/New_OtterCatch.shp")
+bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
 
-Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
+Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Radar_Rain_Exports")
 
 
 
 area_field_name = ""
 
-start_date = '201908050000'
-end_date = '201908162355'
+# start_date = '201908050000'
+# end_date = '201908162355'
+
+start_date = '200907090000'
+end_date = '201904040900'
 
 timestep = '15Min'   # set the desired time step for rainfall time series minimum of '5Min'. other options: 'D' for daily,
                      # 'W' for weekly. for more info look up pandas resample.
@@ -135,7 +138,7 @@ def get_raster_size(raster_list):
     test_ras = raster_list[0]
 
     x_size = int(arcpy.GetRasterProperties_management(test_ras, "CELLSIZEX").getOutput(0))
-    y_size = int(arcpy.GetRasterProperties_management(test_ras, "CELLSIZEX").getOutput(0))
+    y_size = int(arcpy.GetRasterProperties_management(test_ras, "CELLSIZEY").getOutput(0))
 
     return x_size, y_size
 
