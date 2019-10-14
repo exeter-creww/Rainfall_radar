@@ -21,7 +21,7 @@ arcpy.CheckOutExtension("Spatial")
 
 
 # Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2012_2018")
-Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/Data/format_tif")
+Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed")
 bound_shp = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_data/Otter_catchment/New_OtterCatch.shp")
 
 Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
@@ -30,8 +30,8 @@ Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Tes
 
 area_field_name = ""
 
-start_date = '201909050000'
-end_date = '201909162355'
+start_date = '201908050000'
+end_date = '201908162355'
 
 timestep = '15Min'   # set the desired time step for rainfall time series minimum of '5Min'. other options: 'D' for daily,
                      # 'W' for weekly. for more info look up pandas resample.
@@ -95,6 +95,29 @@ def main():
 
             reqData = reqData.resample(timestep).sum()
 
+            # adding some more variables here
+            xdim, ydim = get_raster_size(raster_list)
+
+            reqData['Volume_m3'] = (reqData['tot_rainfall_mm']/1000) * xdim * ydim
+
+            hourrate = pd.Timedelta('1Hour') / pd.Timedelta(timestep)
+            reqData['VolRate_m3_hr'] = reqData['Volume_m3'] * hourrate
+
+            reqData['mean_rain_rate_mm_hr'] = reqData['mean_rainfall_mm'] * hourrate
+
+            reqData = reqData.fillna(0)
+
+            col_order = ['mean_rainfall_mm',
+                         'mean_rain_rate_mm_hr',
+                         'Volume_m3',
+                         'VolRate_m3_hr',
+                         'tot_rainfall_mm',
+                         'MAX',
+                         'MIN',
+                         'STD']
+
+            reqData = reqData[col_order]
+
             savePath = os.path.join(Export_folder, str(row[1]) + '_' + start_date + '_' + end_date + '.csv')
             if os.path.exists(savePath):
                 os.remove(savePath)
@@ -107,6 +130,15 @@ def main():
     finTime = datetime.now() - startTime
     print("script completed. \n"
           "Processing time = {0}".format(finTime))
+
+def get_raster_size(raster_list):
+    test_ras = raster_list[0]
+
+    x_size = int(arcpy.GetRasterProperties_management(test_ras, "CELLSIZEX").getOutput(0))
+    y_size = int(arcpy.GetRasterProperties_management(test_ras, "CELLSIZEX").getOutput(0))
+
+    return x_size, y_size
+
 
 def check_bound_shp(boundary_shp, f_name):
     sZone_fields = [f.name for f in arcpy.ListFields(boundary_shp)]
@@ -207,10 +239,10 @@ def iterateRasters(bound_area, ras_list):
         arr = arcpy.da.TableToNumPyArray(outTable, ('SUM', 'MEAN', 'MAX', 'MIN', 'STD'))
         pandTab = pd.DataFrame(arr)
         pandTab['datetime'] = datetime_object
-        pandTab = pandTab.rename(columns={"SUM": "tot_rainfall"})
-        pandTab['tot_rainfall'] = pandTab['tot_rainfall']/12
-        pandTab = pandTab.rename(columns={"MEAN": "mean_rainfall"})
-        pandTab['mean_rainfall'] = pandTab['mean_rainfall'] / 12
+        pandTab = pandTab.rename(columns={"SUM": "tot_rainfall_mm"})
+        pandTab['tot_rainfall_mm'] = pandTab['tot_rainfall_mm']/12
+        pandTab = pandTab.rename(columns={"MEAN": "mean_rainfall_mm"})
+        pandTab['mean_rainfall_mm'] = pandTab['mean_rainfall_mm'] / 12
         pandDFlist.append(pandTab)
 
     outPDdf = pd.concat(pandDFlist)

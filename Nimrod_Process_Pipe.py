@@ -100,7 +100,7 @@ def unzip_and_convert(ddir, edir, file_list):
                 output.write(s)
                 output.close()
                 os.remove(name)
-            except Exception:
+            except Exception:  #  so far errors have included: OS.Error and zlib.error: Error -3 while decompressing data: invalid block type
                 pass
             # print("now delete intermediate file...")
             try:
@@ -174,6 +174,8 @@ def convert_dat_to_asc(outdir, file_list):
                 print(e)
                 if 'src' in locals():
                     src.close()
+                if 'file_id' in locals():
+                    file_id.close()
 
                 if os.path.exists(asc_name):
                     os.remove(asc_name)
