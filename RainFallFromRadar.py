@@ -233,20 +233,34 @@ def iterateRasters(bound_area, ras_list):
     pandDFlist = []
 
     for ras in ras_list:
+
         date = ras[-30:-18]
         dateForm = date[:4] + '/' + date[4:6] + '/' + date[6:8] + ' ' + date[8:10] + ':' + date[10:12]
         datetime_object = datetime.strptime(dateForm, "%Y/%m/%d %H:%M")
         outTable = os.path.join(r'in_memory', "rain_radar_{0}").format(date)
-        arcpy.sa.ZonalStatisticsAsTable(bound_area, "Zone_no", ras, outTable, "DATA", "ALL")
 
-        arr = arcpy.da.TableToNumPyArray(outTable, ('SUM', 'MEAN', 'MAX', 'MIN', 'STD'))
-        pandTab = pd.DataFrame(arr)
-        pandTab['datetime'] = datetime_object
-        pandTab = pandTab.rename(columns={"SUM": "tot_rainfall_mm"})
-        pandTab['tot_rainfall_mm'] = pandTab['tot_rainfall_mm']/12
-        pandTab = pandTab.rename(columns={"MEAN": "mean_rainfall_mm"})
-        pandTab['mean_rainfall_mm'] = pandTab['mean_rainfall_mm'] / 12
-        pandDFlist.append(pandTab)
+        try:
+            arcpy.sa.ZonalStatisticsAsTable(bound_area, "Zone_no", ras, outTable, "DATA", "ALL")
+
+            arr = arcpy.da.TableToNumPyArray(outTable, ('SUM', 'MEAN', 'MAX', 'MIN', 'STD'))
+            pandTab = pd.DataFrame(arr)
+            pandTab['datetime'] = datetime_object
+            pandTab = pandTab.rename(columns={"SUM": "tot_rainfall_mm"})
+            pandTab['tot_rainfall_mm'] = pandTab['tot_rainfall_mm']/12
+            pandTab = pandTab.rename(columns={"MEAN": "mean_rainfall_mm"})
+            pandTab['mean_rainfall_mm'] = pandTab['mean_rainfall_mm'] / 12
+            pandDFlist.append(pandTab)
+        except Exception as e:
+            print(e)
+            d = {'datetime': [datetime_object],
+                 'tot_rainfall_mm': [0],
+                 'mean_rainfall_mm': [0],
+                 'MEAN': [0],
+                 'MAX': [0],
+                 'MIN': [0],
+                 'STD': [0]}
+            pandTab = pd.DataFrame(data=d)
+            pandDFlist.append(pandTab)
 
     outPDdf = pd.concat(pandDFlist)
 
