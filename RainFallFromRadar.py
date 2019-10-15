@@ -24,7 +24,7 @@ arcpy.CheckOutExtension("Spatial")
 Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed")
 bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
 
-Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Radar_Rain_Exports")
+Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports")
 
 
 
@@ -117,7 +117,8 @@ def main():
                          'tot_rainfall_mm',
                          'MAX',
                          'MIN',
-                         'STD']
+                         'STD',
+                         'Error_Rec']
 
             reqData = reqData[col_order]
 
@@ -249,16 +250,21 @@ def iterateRasters(bound_area, ras_list):
             pandTab['tot_rainfall_mm'] = pandTab['tot_rainfall_mm']/12
             pandTab = pandTab.rename(columns={"MEAN": "mean_rainfall_mm"})
             pandTab['mean_rainfall_mm'] = pandTab['mean_rainfall_mm'] / 12
+            pandTab['Error_Rec'] = 0
             pandDFlist.append(pandTab)
         except Exception as e:
             print(e)
+            print("Error occurred at: \n"
+                  "{0}".format(ras))
+
             d = {'datetime': [datetime_object],
                  'tot_rainfall_mm': [0],
                  'mean_rainfall_mm': [0],
                  'MEAN': [0],
                  'MAX': [0],
                  'MIN': [0],
-                 'STD': [0]}
+                 'STD': [0],
+                 'Error_Rec': [999]}
             pandTab = pd.DataFrame(data=d)
             pandDFlist.append(pandTab)
 
