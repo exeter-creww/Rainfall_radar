@@ -274,7 +274,7 @@ def iterateRasters(bound_area, ras_list):
 
 def paralellProcess(area_shp,Ras_list):
     n_feat = len(Ras_list)
-    num_cores = multiprocessing.cpu_count() - 1
+    num_cores = multiprocessing.cpu_count() #- 1
     print('n available cores  = {0}'.format(num_cores))
     n_split = int(n_feat/num_cores)
 
