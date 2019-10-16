@@ -1,6 +1,10 @@
 # Script builds rainfall time series from Nimrod MetOffice rainfall data. Data must already be converted into an
 # ESRI readable Raster Format.
 
+#Issues: This works fine on small datasets but having stability issues when running for long time periods.
+#        No error message is given - stuff just hangs. I've had this issue before and resolved by avoiding arcpy.
+#        now going to work on RainFromRadar_Open.py to implement Rasterio/rasterstats method.
+
 import os
 import arcpy
 import multiprocessing
