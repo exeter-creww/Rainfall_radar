@@ -18,13 +18,6 @@ from rasterstats import zonal_stats
 import geopandas as gpd
 
 
-# Check out the ArcGIS Spatial Analyst extension license
-# arcpy.env.cartographicCoordinateSystem = arcpy.SpatialReference("British National Grid")
-# arcpy.env.outputCoordinateSystem = arcpy.SpatialReference("British National Grid")
-# arcpy.env.overwriteOutput = True
-# arcpy.CheckOutExtension("Spatial")
-
-
 # Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2012_2018")
 Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed")
 bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
@@ -45,10 +38,6 @@ timestep = '15Min'   # set the desired time step for rainfall time series minimu
                      # 'W' for weekly. for more info look up pandas resample.
 
 epsg_code = str(27700)
-# scratch = r"in_memory"
-# env.workspace = r"in_memory"
-# arcpy.env.scratchWorkspace = r"in_memory"
-
 
 def main():
     # if os.path.exists(Export_folder):  ### JUST FOR TESTING¬¬¬
@@ -62,10 +51,11 @@ def main():
     except OSError as e:
         # If directory has already been created and is accessible
         if os.path.exists(Export_folder):
-            # arcpy.AddMessage("Error creating Export Directory. Directory Already Exists\n"
-            #                  "############ Delete before running or rename. #############")
-            sys.exit("Error creating Export Directory. Directory Already Exists\n"
+            # shutil.rmtree(Export_folder) # For Testing!
+            # os.makedirs(Export_folder) # For Testing!
+            print("Error creating Export Directory. Directory Already Exists\n"
                              "############ Delete before running or rename. #############")
+
         else:  # Directory cannot be created because of file permissions, etc.
             sys.exit("##### Cannot create Export Folder #####"
                      "### Check permissions and file path.###")
@@ -79,32 +69,10 @@ def main():
     shp_proc_gdf = check_bound_shp(bound_shp, area_field_name, epsg_code)
     raster_list = get_correct_time(Data_folder, start_date, end_date)
 
-    # shp_procFL = arcpy.MakeFeatureLayer_management(shp_proc, "lay_selec", "", r"in_memory")
-    # fields = arcpy.ListFields(shp_procFL)
-    # for field in fields:
-    #     print(field.name)
-
-
     for i, area in shp_proc_gdf.iterrows():
-        gdf = gpd.GeoDataFrame(gpd.GeoSeries(area['geometry']), columns=list(shp_proc_gdf.columns))
 
-        name = gdf['Area_Name'][0]
-
-    #
-    # with arcpy.da.SearchCursor(shp_procFL, ['Zone_no', 'Area_Name']) as cursor:
-    #     for row in cursor:
-    #         expr = """{0} = {1}""".format('Zone_no', row[0])
-    #         # print(expr)
-    #
-    #         arcpy.SelectLayerByAttribute_management(shp_procFL,
-    #                                                 "NEW_SELECTION",
-    #                                                 expr)
-    #         temp_zone = os.path.join(scratch_gdb, "temp_zone.shp")
-    #         arcpy.CopyFeatures_management(shp_procFL, temp_zone)
-    #
-    #         extent = arcpy.Describe(temp_zone).extent
-    #
-    #         arcpy.env.extent = extent
+        gdf = pd.DataFrame(area).transpose()
+        name = gdf.iloc[0]['Area_Name']
 
         reqData = paralellProcess(gdf, raster_list)
 
@@ -130,9 +98,9 @@ def main():
                      'Volume_m3',
                      'VolRate_m3_hr',
                      'tot_rainfall_mm',
-                     'MAX',
-                     'MIN',
-                     'STD',
+                     'max',
+                     'min',
+                     'std',
                      'Error_Rec']
 
         reqData = reqData[col_order]
@@ -154,13 +122,12 @@ def get_raster_size(raster_list):
     test_ras = raster_list[0]
 
     raster = rasterio.open(test_ras)
-    gt = raster.affine
+    gt = raster.transform
 
     x_size = gt[0]
     y_size = -gt[4]
 
-    # x_size = int(arcpy.GetRasterProperties_management(test_ras, "CELLSIZEX").getOutput(0))
-    # y_size = int(arcpy.GetRasterProperties_management(test_ras, "CELLSIZEY").getOutput(0))
+    raster.close()
 
     return x_size, y_size
 
@@ -174,28 +141,6 @@ def check_bound_shp(boundary_shp, f_name, epsg):
 
     count = len(bound_gdf.index)
 
-    # sZone_fields = [f.name for f in arcpy.ListFields(boundary_shp)]
-
-    # if "Zone_no" in sZone_fields:
-    #     arcpy.DeleteField_management(boundary_shp, "Zone_no")
-
-    # zone_info = os.path.join(scratch, "tmp_shp_copy")
-    # if arcpy.Exists(zone_info):
-    #     arcpy.Delete_management(zone_info)
-    # arcpy.CopyFeatures_management(boundary_shp, zone_info)
-
-    # create sequential numbers for reaches
-    # arcpy.AddField_management(zone_info, "Zone_no", "LONG")
-
-    # with arcpy.da.UpdateCursor(zone_info, ["Zone_no"]) as cursor:
-    #     id=0
-    #     for row in cursor:
-    #         id += 1
-    #         row[0] = id
-    #         cursor.updateRow(row)
-
-    # result = arcpy.GetCount_management(zone_info)
-    # count = int(result.getOutput(0))
     print("number of features in boundary shaprefile is {0}".format(count))
     if count == 0:
         sys.exit("Error - boundary shp file provided contains no data!")
@@ -204,18 +149,8 @@ def check_bound_shp(boundary_shp, f_name, epsg):
 
             bound_gdf['Area_Name'] = 'AOI'
 
-            # if "Area_Name" in sZone_fields:
-            #     arcpy.DeleteField_management(zone_info, "Area_Name")
-            #
-            # arcpy.AddField_management(zone_info, 'Area_Name', 'TEXT')
-            # with arcpy.da.UpdateCursor(zone_info, ['Area_Name']) as cursor:
-            #     for row in cursor:
-            #         row[0] = "AOI"
-            #         cursor.updateRow(row)
         if f_name in bound_gdf.columns:
             bound_gdf.rename(columns={f_name: 'Area_Name'})
-        # if f_name in sZone_fields:
-        #     arcpy.AlterField_management(zone_info, f_name, new_field_name='Area_Name')
 
         print("single AOI provided - outputs")
     else:
@@ -234,7 +169,7 @@ def get_correct_time (ras_folder, start, end):
     file_list = []
 
     for name in glob.glob(os.path.join(ras_folder, "*.tif")):
-        file_list.append(name)# file_list.append(name)
+        file_list.append(name)
     file_list.sort(key=lambda x: x[-30:-18])
 
     date_list = [s[-30:-18] for s in file_list] # gets list of dates form file list
@@ -256,7 +191,6 @@ def get_correct_time (ras_folder, start, end):
         e_row = [i for i, x in enumerate(file_list) if x[-30:-18] == str(closest_end)]
         e_row = int(e_row[0])
 
-
     selec_file_list = file_list[s_row:e_row]
 
     return selec_file_list
@@ -272,7 +206,6 @@ def iterateRasters(bound_area, ras_list):
         dateForm = date[:4] + '/' + date[4:6] + '/' + date[6:8] + ' ' + date[8:10] + ':' + date[10:12]
         datetime_object = datetime.strptime(dateForm, "%Y/%m/%d %H:%M")
         outTable = os.path.join(r'in_memory', "rain_radar_{0}").format(date)
-
 
         try:
             stats = zonal_stats(gs, ras, all_touched=True,
@@ -290,14 +223,8 @@ def iterateRasters(bound_area, ras_list):
 
             err = 999
 
-
         pandTab = pd.DataFrame(stats)
 
-        # try:
-        #     arcpy.sa.ZonalStatisticsAsTable(bound_area, "Zone_no", ras, outTable, "DATA", "ALL")
-        #
-        #     arr = arcpy.da.TableToNumPyArray(outTable, ('SUM', 'MEAN', 'MAX', 'MIN', 'STD'))
-        #     pandTab = pd.DataFrame(arr)
         pandTab['datetime'] = datetime_object
         pandTab = pandTab.rename(columns={"sum": "tot_rainfall_mm"})
         pandTab['tot_rainfall_mm'] = pandTab['tot_rainfall_mm']/12
@@ -305,21 +232,6 @@ def iterateRasters(bound_area, ras_list):
         pandTab['mean_rainfall_mm'] = pandTab['mean_rainfall_mm'] / 12
         pandTab['Error_Rec'] = err
         pandDFlist.append(pandTab)
-        # except Exception as e:
-        #     print(e)
-        #     print("Error occurred at: \n"
-        #           "{0}".format(ras))
-        #
-        #     d = {'datetime': [datetime_object],
-        #          'tot_rainfall_mm': [0],
-        #          'mean_rainfall_mm': [0],
-        #          'MEAN': [0],
-        #          'MAX': [0],
-        #          'MIN': [0],
-        #          'STD': [0],
-        #          'Error_Rec': [999]}
-        #     pandTab = pd.DataFrame(data=d)
-        #     pandDFlist.append(pandTab)
 
     outPDdf = pd.concat(pandDFlist)
 
