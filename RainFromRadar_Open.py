@@ -20,19 +20,25 @@ import geopandas as gpd
 
 # Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2012_2018")
 Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed")
-bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
 
-Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports")
+# bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
+bound_shp = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp")
+
+
+Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/Exports_RG")
 # Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
 
 
-area_field_name = ""  # this is the name of the attribute you want to use to name your files.
+area_field_name = "Name"  # this is the name of the attribute you want to use to name your files.
 
-# start_date = '201908050000'
+# start_date = '201908050000' # Let's test things...
 # end_date = '201908162355'
 
-start_date = '200907090000'
-end_date = '201904040900'
+# start_date = '200907090000'
+# end_date = '201904040900'
+
+start_date = '201001010000'
+end_date = '201909162355'  # This is the most recent observation we currently have downloaded.
 
 timestep = '15Min'   # set the desired time step for rainfall time series minimum of '5Min'. other options: 'D' for daily,
                      # 'W' for weekly. for more info look up pandas resample.
@@ -51,8 +57,7 @@ def main():
     except OSError as e:
         # If directory has already been created and is accessible
         if os.path.exists(Export_folder):
-            # shutil.rmtree(Export_folder) # For Testing!
-            # os.makedirs(Export_folder) # For Testing!
+
             print("Error creating Export Directory. Directory Already Exists\n"
                              "############ Delete before running or rename. #############")
 
@@ -72,6 +77,7 @@ def main():
     for i, area in shp_proc_gdf.iterrows():
 
         gdf = pd.DataFrame(area).transpose()
+
         name = gdf.iloc[0]['Area_Name']
 
         reqData = paralellProcess(gdf, raster_list)
@@ -150,7 +156,7 @@ def check_bound_shp(boundary_shp, f_name, epsg):
             bound_gdf['Area_Name'] = 'AOI'
 
         if f_name in bound_gdf.columns:
-            bound_gdf.rename(columns={f_name: 'Area_Name'})
+            bound_gdf = bound_gdf.rename(columns={f_name: 'Area_Name'})
 
         print("single AOI provided - outputs")
     else:
@@ -160,7 +166,7 @@ def check_bound_shp(boundary_shp, f_name, epsg):
                      "### Add new field and create unique names ###")
 
         if f_name in bound_gdf.columns:
-            bound_gdf.rename(columns={f_name: 'Area_Name'})
+            bound_gdf = bound_gdf.rename(columns={f_name: 'Area_Name'})
 
     return bound_gdf
 
