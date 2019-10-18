@@ -22,17 +22,17 @@ import geopandas as gpd
 Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed")
 bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
 
-# Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports")
-Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
+Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports")
+# Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
 
 
-area_field_name = ""
+area_field_name = ""  # this is the name of the attribute you want to use to name your files.
 
-start_date = '201908050000'
-end_date = '201908162355'
+# start_date = '201908050000'
+# end_date = '201908162355'
 
-# start_date = '200907090000'
-# end_date = '201904040900'
+start_date = '200907090000'
+end_date = '201904040900'
 
 timestep = '15Min'   # set the desired time step for rainfall time series minimum of '5Min'. other options: 'D' for daily,
                      # 'W' for weekly. for more info look up pandas resample.
