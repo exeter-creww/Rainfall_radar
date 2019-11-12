@@ -21,24 +21,24 @@ import geopandas as gpd
 # Data_folder = os.path.abspath("Y:/shared_data/01_Radar/01_Converted_15_minutes_data/Exports_2012_2018")
 Data_folder = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed")
 
-# bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
-bound_shp = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp")
+bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp")
+# bound_shp = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp")
 
 
-Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/Exports_RG")
-# Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
+# Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/Exports_RG")
+Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
 
 
-area_field_name = "Name"  # this is the name of the attribute you want to use to name your files.
+area_field_name = None #"Name"  # this is the name of the attribute you want to use to name your files.
 
-# start_date = '201908050000' # Let's test things...
-# end_date = '201908162355'
+start_date = '201908050000' # Let's test things...
+end_date = '201908162355'
 
 # start_date = '200907090000'
 # end_date = '201904040900'
-
-start_date = '201001010000'
-end_date = '201909162355'  # This is the most recent observation we currently have downloaded.
+#
+# start_date = '201001010000'
+# end_date = '201909162355'  # This is the most recent observation we currently have downloaded.
 
 timestep = '15Min'   # set the desired time step for rainfall time series minimum of '5Min'. other options: 'D' for daily,
                      # 'W' for weekly. for more info look up pandas resample.
@@ -84,8 +84,11 @@ def main():
 
         reqData = reqData.set_index('datetime').asfreq('5Min')
 
-        reqData = reqData.resample(timestep).sum()
-
+        reqData1 = reqData[['mean_rainfall_mm', 'tot_rainfall_mm']].resample(timestep).sum()
+        reqData2 = reqData[['max',  'std', 'Error_Rec']].resample(timestep).max()
+        reqData3 = reqData['min'].resample(timestep).min()
+        dfs = [reqData1, reqData2, reqData3]
+        reqData = dfs[0].join(dfs[1:])
         # adding some more variables here
         xdim, ydim = get_raster_size(raster_list)
         print('Raster dimensions are: x = {0} and y = {1}'.format(xdim, ydim))
@@ -110,6 +113,12 @@ def main():
                      'Error_Rec']
 
         reqData = reqData[col_order]
+
+        reqData = reqData.drop(['tot_rainfall_mm'], axis=1)
+
+        reqData = reqData.rename(columns={"max": "max_rain_rate_mm_hr"})
+        reqData = reqData.rename(columns={"min": "min_rain_rate_mm_hr"})
+        reqData = reqData.rename(columns={"std": "std_rain_rate_mm_hr"})
 
         savePath = os.path.join(Export_folder, str(name) + '_' + start_date + '_' + end_date + '.csv')
         if os.path.exists(savePath):
@@ -233,9 +242,13 @@ def iterateRasters(bound_area, ras_list):
 
         pandTab['datetime'] = datetime_object
         pandTab = pandTab.rename(columns={"sum": "tot_rainfall_mm"})
-        pandTab['tot_rainfall_mm'] = pandTab['tot_rainfall_mm']/12
+        pandTab['tot_rainfall_mm'] = (pandTab['tot_rainfall_mm'] / 32) / 12  # must divide by 32 first as raster cells are (mm/hr)*32
         pandTab = pandTab.rename(columns={"mean": "mean_rainfall_mm"})
-        pandTab['mean_rainfall_mm'] = pandTab['mean_rainfall_mm'] / 12
+        pandTab['mean_rainfall_mm'] = (pandTab['mean_rainfall_mm'] / 32) / 12
+        pandTab['max'] = (pandTab['max'] / 32) / 12
+        pandTab['min'] = (pandTab['min'] / 32) / 12
+        pandTab['std'] = (pandTab['std'] / 32) / 12
+
         pandTab['Error_Rec'] = err
         pandDFlist.append(pandTab)
 
