@@ -26,16 +26,16 @@ bound_shp = os.path.abspath("C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catch
 
 
 # Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/Exports_RG")
-Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
-
+# Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports")
+Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
 
 area_field_name = None #"Name"  # this is the name of the attribute you want to use to name your files.
 
-start_date = '201908050000' # Let's test things...
-end_date = '201908162355'
+# start_date = '201908050000' # Let's test things...
+# end_date = '201908162355'
 
-# start_date = '200907090000'
-# end_date = '201904040900'
+start_date = '200907090000'
+end_date = '201904040900'
 #
 # start_date = '201001010000'
 # end_date = '201909162355'  # This is the most recent observation we currently have downloaded.
