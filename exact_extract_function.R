@@ -33,7 +33,7 @@ shape <- read_sf(dsn = shpfile)
 shape2 <- st_as_sf(shape)
 plot(shape2[1])
 
-grid <- raster(x = ras, crs=epsg)
+grid <- raster(x = ras)
 
 result <- exact_extract(grid, shape2, 'count')
 
