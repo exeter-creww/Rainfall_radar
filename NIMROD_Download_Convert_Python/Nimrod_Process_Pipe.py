@@ -1,21 +1,16 @@
 # This script extracts all of the downloaded data to a new folder.
 
 from tqdm import tqdm
-import sys
 import os
 import glob
 import shutil
 import gzip
-import nimrod
-# import arcpy
+from NIMROD_Download_Convert_Python import nimrod
 import multiprocessing
 from functools import partial
-
 import rasterio
 from rasterio.crs import CRS
-
 import numpy as np
-
 from datetime import datetime
 import time
 
@@ -115,12 +110,9 @@ def unzip_and_convert(ddir, edir, file_list):
 
         # call convert
 def convert_dat_to_asc(outdir, file_list):
-    # arcpy.SetLogHistory(False)
+
     epsg = str(27700)
-    # coor_system = arcpy.SpatialReference("British National Grid")
-    # arcpy.env.cartographicCoordinateSystem = coor_system
-    # arcpy.env.outputCoordinateSystem = coor_system
-    # arcpy.env.compression = "LZ77"
+
     for name in file_list:
 
         fname = os.path.basename(name)
@@ -161,9 +153,6 @@ def convert_dat_to_asc(outdir, file_list):
                     dest.write(array.astype(rasterio.int16), 1)
 
                 src.close()
-                # with arcpy
-                # arcpy.ASCIIToRaster_conversion(asc_name, saveras_path, data_type="INTEGER")
-                # arcpy.DefineProjection_management(saveras_path, coor_system)
 
                 if os.path.exists(asc_name):
                     os.remove(asc_name)
@@ -181,7 +170,7 @@ def convert_dat_to_asc(outdir, file_list):
                     os.remove(asc_name)
                 if os.path.exists(name):
                     os.remove(name)
-        #  I removed the return command - not sure if that was causing any issues?
+
 
 
 def paralellProcess(ras_folder):

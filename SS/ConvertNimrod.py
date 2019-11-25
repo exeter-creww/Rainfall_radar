@@ -1,6 +1,6 @@
 #  This file uses the nimrod.py module offered by CEDA to batch convert the full rain dataset (hopefully)...
 import os
-import nimrod
+from NIMROD_Download_Convert_Python import nimrod
 import arcpy
 import glob
 import multiprocessing
