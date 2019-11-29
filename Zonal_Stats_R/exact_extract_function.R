@@ -14,7 +14,7 @@ sprintf("start time = %s", s_time)
 #! /usr/bin/Rscript
 .libPaths("C:/Program Files/R/R-3.6.1/library")
 # Check that the required packages are installed
-list.of.packages <- c("exactextractr", "tidyverse", "raster", "sf", "rgdal", "lubridate", "foreach", "doParallel")
+list.of.packages <- c("exactextractr", "tidyverse", "raster", "sf", "rgdal", "lubridate", "foreach", "doParallel", "padr", "tcltk")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -27,33 +27,38 @@ library(tidyverse)
 library(lubridate)
 library(foreach)
 library(doParallel)
+library(padr)
+library(tcltk)
 
-options(scipen=999)
+options(scipen=999) # turns off scientific notation
 #---------- Project Paths - User input ----------------------
 
 Data_folder <- "D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed"  # Folder containing all Rainfall Rasters
 
-bound_shp <- "C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp"  # An input polygon file
-# bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp"
+# bound_shp <- "C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp"  # An input polygon file
+bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp"
 
 
 
-Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving 
-# Export_folder = os.path.abspath("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
-# Export_folder = os.path.abspath("C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/Exports_RG")
+Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
+# Export_folder <-("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
+# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/Exports_RG_V2"
 
 
-area_field_name = NA #"Name" # This is the name of the attribute you want to use to name your files. 
+area_field_name ="Name" # This is the name of the attribute you want to use to name your files. 
                              # if you only have one shape you can set as NA and a default of AOI is used
 
-start_date <- 201908050000 # Let's test things... 200404062320 #
-end_date <- 201909050000
+start_date <- 201902050000 # Let's test things... 200404062320 #
+end_date <- 201908150000
+
+# start_date <- 201001010000
+# end_date <- 201909162355
 
 timestep <- '15 min' # The desired timestep to aggregate files requires lubridate time format.
 
 EPSG <- 27700  # If working in UK and using MetOffice Rain Radar data leave this as 27700
 
-#--------------------- Check export folder ----------------------------------------------------
+#--------------------- Check export folder and create sub folders ----------------------------------------------------
 
 if (isFALSE(dir.exists(Export_folder))){
   print("Export folder does not exist - creating it now...")
@@ -90,7 +95,7 @@ shape <- st_transform(shape, crs = CRS)                                         
 
 count = nrow(shape)
 
-if (count == 0) {
+if (count == 0) {                                                                      # check number of features in polygon and assign correct naming column
  stop("Error - boundary shp file provided contains no features!")
 } else if (count == 1) {
   if (is.na(area_field_name)){
@@ -149,58 +154,86 @@ selec_file_list = rasterlist[s_row:e_row]                                       
 
 #-------------- Run Raster Statistics with exactextractr ----------------------------
 
-substrRight <- function(x, n){       # function to extact substrings from right
+substrRight <- function(x, n){                                                          # function to extact substrings from right
   substr(x, nchar(x)-n+1, nchar(x))
 }
 
 
-selec_rasters <-  paste(Data_folder, selec_file_list, sep="/")
+selec_rasters <-  paste(Data_folder, selec_file_list, sep="/")                         # create full file paths for list of rasters
 
-# combined_df <- NULL
 
 #setup parallel backend to use many processors
 cores=detectCores()
 cl <- makeCluster(cores[1]-1) #not to overload your computer
 registerDoParallel(cl)
 
+n = ceiling(length(selec_rasters)/(cores[1]-1))
+# clusterExport(cl, c("n"))
 # run rainfall extraction
 combined_df <- foreach(ras = selec_rasters, .combine = rbind, 
-                       .packages = c("raster", "sf", "rgdal", "exactextractr", "tidyverse", "lubridate" )) %dopar% {
-  
-  date_num <- substr(substrRight(ras, 30), start = 1, stop = 12)
-  date_form <- paste(substr(date_num, 1,4), substr(date_num, 5,6), substr(date_num, 7,8), sep = "/")
-  time_form <- paste(substr(date_num, 9,10), substr(date_num, 11,12), sep = ":")
-  date_time_ex <-  ymd_hm(paste(date_form, time_form, sep = " "))
-  
-  grid <- raster(x = ras)
-  
-  result <- as.tibble(exact_extract(grid, shape, fun = c('mean','sum', 'min', 'max'), progress = FALSE))%>%
-    rename(rain_intensity_mmhr = mean)%>%
-    mutate(rain_intensity_mmhr = rain_intensity_mmhr/32) %>%
-    rename(rain_volume_m3 = sum) %>%
-    add_column(shp_area = as.double(shape$shp_area)) %>%
-    mutate(rain_volume_m3 = (rain_volume_m3/32/12/1000)*shp_area) %>%
-    rename(min_intensity_mmhr = min) %>%
-    mutate(min_intensity_mmhr = min_intensity_mmhr/32) %>%
-    rename(max_intensity_mmhr = max) %>%
-    mutate(max_intensity_mmhr = max_intensity_mmhr/32) %>%
-    add_column(Area_Name = shape$Area_Name) %>%
-    add_column(date_time = date_time_ex)
-  
-  # combined_df <- rbind(combined_df,result)
-}
+                       .packages = c("raster", "sf", "rgdal", "exactextractr", "tidyverse", "lubridate", "tcltk" )) %dopar% {
+                         
+                         if(!exists("counter")) counter <- 0
+                         counter = counter + 1 
+                         
+                         if(!exists("pb")) pb <- tkProgressBar("Parallel task", min=1, max=n)
+                         setTkProgressBar(pb, counter)
+                         
+                         try({date_num <- substr(substrRight(ras, 30), start = 1, stop = 12)    
+                         date_form <- paste(substr(date_num, 1,4), substr(date_num, 5,6), substr(date_num, 7,8), sep = "/")
+                         time_form <- paste(substr(date_num, 9,10), substr(date_num, 11,12), sep = ":")
+                         date_time_ex <-  ymd_hm(paste(date_form, time_form, sep = " "))
+                         
+                         grid <- raster(x = ras)
+                         
+                         result <- as.tibble(exact_extract(grid, shape, fun = c('mean','sum', 'min', 'max'), progress = FALSE))%>%
+                           rename(rain_intensity_mmhr = mean)%>%
+                           mutate(rain_intensity_mmhr = rain_intensity_mmhr/32) %>%
+                           rename(rain_volume_m3 = sum) %>%
+                           add_column(shp_area = as.double(shape$shp_area)) %>%
+                           mutate(rain_volume_m3 = (rain_volume_m3/32/12/1000)*shp_area) %>%
+                           rename(min_intensity_mmhr = min) %>%
+                           mutate(min_intensity_mmhr = min_intensity_mmhr/32) %>%
+                           rename(max_intensity_mmhr = max) %>%
+                           mutate(max_intensity_mmhr = max_intensity_mmhr/32) %>%
+                           add_column(Area_Name = shape$Area_Name) %>%
+                           add_column(date_time = date_time_ex)
+                         
+                         result})
+                         
+                         # combined_df <- rbind(combined_df,result)
+                       }
 
-combined_df <- combined_df %>%
+stopCluster(cl)
+
+combined_df <- combined_df %>%   # Group df by area name
   group_by(Area_Name)
 
-table_list <- group_split(combined_df)
+table_list <- group_split(combined_df)   # spli
 
+# function to conver the time integers provided to lubridate values
+convert_time <- function(time_val){
+  dt_val <- paste(substr(as.character(time_val), start = 1, stop = 4), 
+                   substr(as.character(time_val), start = 5, stop = 6),
+                   substr(as.character(time_val), start = 7, stop = 8), sep = "/")  
+  tm_val <- paste(substr(as.character(time_val), start = 9, stop = 10), 
+                  substr(as.character(time_val), start = 11, stop = 12), sep = ":") 
+  dt_tm_val <- ymd_hm(paste(dt_val, tm_val, sep = " "))
+  return(dt_tm_val)
+}
+
+Start_val <- convert_time(start_date)
+End_val <- convert_time(end_date)
 
 for (tab in table_list){
+  
   name <- tab$Area_Name[1]
   
   tab <- tab %>%
-    select(date_time, rain_intensity_mmhr, rain_volume_m3, min_intensity_mmhr, max_intensity_mmhr)
+    select(date_time, rain_intensity_mmhr, rain_volume_m3, min_intensity_mmhr, max_intensity_mmhr) %>%
+    padr::pad(interval = '5 min',
+              start_val = Start_val,
+              end_val = End_val)
   
 
   write_csv(tab , path = file.path(folder_5min, 
@@ -209,11 +242,10 @@ for (tab in table_list){
   
   resam_tab <- tab %>% 
     group_by(requested_interval = ceiling_date(date_time, unit = timestep)) %>% 
-    summarise(rain_intensity_mmhr = mean(rain_intensity_mmhr),
-              rain_volume_m3 = sum(rain_volume_m3),
-              min_intensity_mmhr = min(min_intensity_mmhr),
-              max_intensity_mmhr = max(max_intensity_mmhr))%>%
-    # mutate(requested_interval = requested_interval + minutes(15))%>%
+    summarise(rain_intensity_mmhr = mean(rain_intensity_mmhr, na.rm = TRUE),
+              rain_volume_m3 = sum(rain_volume_m3, na.rm = TRUE),
+              min_intensity_mmhr = min(min_intensity_mmhr, na.rm = TRUE),
+              max_intensity_mmhr = max(max_intensity_mmhr, na.rm = TRUE)) %>% 
     rename(date_time = requested_interval)
   
   write_csv(resam_tab , path = file.path(folder_Xmin, 
