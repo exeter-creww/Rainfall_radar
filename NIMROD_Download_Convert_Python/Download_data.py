@@ -5,7 +5,7 @@ import ftplib
 import os
 
 # Define the local directory name to put data in
-ddir=os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar/")
+ddir=os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_raw_update")
 
 def main():
     # If directory doesn't exist make it
@@ -16,7 +16,7 @@ def main():
     os.chdir(ddir)
 
     # login to FTP
-    f = ftplib.FTP("ftp.ceda.ac.uk", "***username***", "***Password***")
+    f = ftplib.FTP("ftp.ceda.ac.uk", "****UserName****", "****Password*****")
 
     # loop through years
     for year in range(2019, 2020):

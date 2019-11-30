@@ -1,6 +1,6 @@
 # Title     : ExactExtract function for Rainfall extraction
 # Objective : calculate precise raster stats for catchment areas using the exact extract algorithm...
-# Created by: hg340
+# Created by: Hugh GrahamS
 # Created on: 22/11/2019
 
 # ----------- timer ------------
@@ -36,8 +36,8 @@ options(scipen=999) # turns off scientific notation
 Data_folder <- "D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed"  # Folder containing all Rainfall Rasters
 
 # bound_shp <- "C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp"  # An input polygon file
-bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp"
-
+# bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp"
+bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_Catchments_V2.shp" # this one is all the new files ben sent plus ac and sp.
 
 
 Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
@@ -91,7 +91,7 @@ if (CRS != EPSG){                                                               
   print("Supplied polygons not in correct CRS - transforming now...")
 }
 
-shape <- st_transform(shape, crs = CRS)                                                # transform anyway to clarify epsg code if NA
+shape <- st_transform(shape, crs = EPSG)                                                # transform anyway to clarify epsg code if NA
 
 count = nrow(shape)
 

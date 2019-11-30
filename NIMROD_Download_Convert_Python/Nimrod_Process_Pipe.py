@@ -20,9 +20,11 @@ def main():
     print('start time = {0}'.format(startTime))
 
 
-    ddirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Raw')
-    edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed')
+    # ddirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Raw')
+    ddirec = os.path.abspath("D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_raw_update")
 
+    # edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed')
+    edirec = os.path.abspath('D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed_update')
 
 
     # ddirec = os.path.abspath("D:/MetOfficeRadar_Data/Data/10_Day_Test_Ins")
