@@ -1,6 +1,6 @@
 # Title     : ExactExtract function for Rainfall extraction
 # Objective : calculate precise raster stats for catchment areas using the exact extract algorithm...
-# Created by: Hugh GrahamS
+# Created by: Hugh Graham
 # Created on: 22/11/2019
 
 # ----------- timer ------------
@@ -42,17 +42,17 @@ bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_C
 
 Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
 # Export_folder <-("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
-# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/Exports_RG_V2"
+# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/RG_Exports_V2"
 
 
 area_field_name ="Name" # This is the name of the attribute you want to use to name your files. 
                              # if you only have one shape you can set as NA and a default of AOI is used
 
-start_date <- 201902050000 # Let's test things... 200404062320 #
-end_date <- 201908150000
+start_date <- 201908050000 # Let's test things... 200404062320 #
+end_date   <- 201908150000
 
 # start_date <- 201001010000
-# end_date <- 201909162355
+# end_date   <- 201911010000
 
 timestep <- '15 min' # The desired timestep to aggregate files requires lubridate time format.
 
@@ -225,6 +225,7 @@ convert_time <- function(time_val){
 Start_val <- convert_time(start_date)
 End_val <- convert_time(end_date)
 
+
 for (tab in table_list){
   
   name <- tab$Area_Name[1]
@@ -246,7 +247,11 @@ for (tab in table_list){
               rain_volume_m3 = sum(rain_volume_m3, na.rm = TRUE),
               min_intensity_mmhr = min(min_intensity_mmhr, na.rm = TRUE),
               max_intensity_mmhr = max(max_intensity_mmhr, na.rm = TRUE)) %>% 
-    rename(date_time = requested_interval)
+    rename(date_time = requested_interval) 
+  
+  resam_tab<- do.call(data.frame,lapply(resam_tab, function(x) replace(x, is.infinite(x),NA))) # convert non finite numbers to NA
+  
+  resam_tab$rain_volume_m3[is.na(resam_tab$rain_intensity_mmhr)] <- NA   # just to change zeros to NA where they'ved been summed in summarise
   
   write_csv(resam_tab , path = file.path(folder_Xmin, 
                                    paste(name, str_replace(timestep, " ", "_"), as.character(start_date), 
