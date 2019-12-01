@@ -40,19 +40,19 @@ Data_folder <- "D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed"  # Folder co
 bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_Catchments_V2.shp" # this one is all the new files ben sent plus ac and sp.
 
 
-Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
+# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
 # Export_folder <-("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
-# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/RG_Exports_V2"
+Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/RG_Exports_V2"
 
 
 area_field_name ="Name" # This is the name of the attribute you want to use to name your files. 
                              # if you only have one shape you can set as NA and a default of AOI is used
 
-start_date <- 201908050000 # Let's test things... 200404062320 #
-end_date   <- 201908150000
+# start_date <- 201908050000 # Let's test things... 200404062320 #
+# end_date   <- 201908150000
 
-# start_date <- 201001010000
-# end_date   <- 201911010000
+start_date <- 201001010000
+end_date   <- 201911010000
 
 timestep <- '15 min' # The desired timestep to aggregate files requires lubridate time format.
 
@@ -234,7 +234,8 @@ for (tab in table_list){
     select(date_time, rain_intensity_mmhr, rain_volume_m3, min_intensity_mmhr, max_intensity_mmhr) %>%
     padr::pad(interval = '5 min',
               start_val = Start_val,
-              end_val = End_val)
+              end_val = End_val,
+              break_above = 2)
   
 
   write_csv(tab , path = file.path(folder_5min, 
