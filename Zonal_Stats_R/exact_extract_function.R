@@ -37,12 +37,12 @@ Data_folder <- "D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed"  # Folder co
 
 # bound_shp <- "C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp"  # An input polygon file
 # bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp"
-bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_Catchments_V2.shp" # this one is all the new files ben sent plus ac and sp.
-
+# bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_Catchments_V2.shp" # this one is all the new files ben sent plus ac and sp.
+bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/New_catchments/Combined_Shps/HH_FTP_combined.shp"
 
 # Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
 # Export_folder <-("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
-Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/RG_Exports_V2"
+Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/RG_FTP_HH_Exports_V2"
 
 
 area_field_name ="Name" # This is the name of the attribute you want to use to name your files. 

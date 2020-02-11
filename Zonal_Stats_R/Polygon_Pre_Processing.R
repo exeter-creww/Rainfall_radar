@@ -21,8 +21,8 @@ library(ggmap)
 
 # ------------------- User input -------------------------------------------
 
-Polygon_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data"
-Out_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_PP_outs"
+Polygon_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/New_catchments"
+Out_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/New_catchments/Combined_Shps"
 
 # ------------------ Check Export folders ------------------------------------
 
@@ -63,10 +63,19 @@ for (shp in shp_path_list) {
   name <- str_replace(basename(shp), ".shp", "")
   
   shape <- read_sf(dsn = shp)                                                      # Read in polygon(s)
-  
+  shape$Area <- st_area(shape)
   shape$Name <- name
+  shape <-
+    shape %>%
+    st_union()
   
-  CRS <- as.numeric(na.omit(epsg_df$code[epsg_df$prj4 == crs(shape)]))                   # get the epsg code for the provided polgon
+  plot(shape)
+  # shape <- sf::st_union(shape, by_feature = FALSE)
+  # plot(shape)
+  
+
+  
+  CRS <- as.numeric(na.omit(epsg_df$code[epsg_df$prj4 == st_crs(shape)[2]]))                   # get the epsg code for the provided polgon
   
   if (CRS != EPSG){                                                                      # give message if original polygon not in OSGB.
     sprintf("%s not in correct CRS - transforming now...", basename(shp))
