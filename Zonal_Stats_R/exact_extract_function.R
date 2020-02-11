@@ -37,22 +37,23 @@ Data_folder <- "D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed"  # Folder co
 
 # bound_shp <- "C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp"  # An input polygon file
 # bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp"
-bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_Catchments_V2.shp" # this one is all the new files ben sent plus ac and sp.
-
+# bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_Catchments_V2.shp" # this one is all the new files ben sent plus ac and sp.
+# bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/New_catchments/Combined_Shps/HH_FTP_combined.shp"
+bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_Cornwall/shps/WV_catchment_Reproj.shp"
 
 # Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
 # Export_folder <-("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
-Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/RG_Exports_V2"
+Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_Cornwall/woodval_exports"
 
 
-area_field_name ="Name" # This is the name of the attribute you want to use to name your files. 
+area_field_name <- "Name" # This is the name of the attribute you want to use to name your files.
                              # if you only have one shape you can set as NA and a default of AOI is used
 
 # start_date <- 201908050000 # Let's test things... 200404062320 #
 # end_date   <- 201908150000
 
-start_date <- 201001010000
-end_date   <- 201911010000
+start_date <- 201511010000
+end_date   <- 202001312355
 
 timestep <- '15 min' # The desired timestep to aggregate files requires lubridate time format.
 
@@ -93,17 +94,18 @@ if (CRS != EPSG){                                                               
 
 shape <- st_transform(shape, crs = EPSG)                                                # transform anyway to clarify epsg code if NA
 
-count = nrow(shape)
+count <-  nrow(shape)
 
 if (count == 0) {                                                                      # check number of features in polygon and assign correct naming column
  stop("Error - boundary shp file provided contains no features!")
 } else if (count == 1) {
   if (is.na(area_field_name)){
+    
     shape$Area_Name <- "AOI"   # add AOI name
   }   
   if (area_field_name %in% colnames(shape)){
     shape <- shape %>% 
-      rename(area_field_name = Area_Name)
+      rename(Area_Name = area_field_name)
   }
   
 } else if (count > 1) {
@@ -113,6 +115,7 @@ if (count == 0) {                                                               
         ######## Add new field and create unique names")
   }
   if (area_field_name %in% colnames(shape)){
+    print("this happened3")
     shape <- shape %>% 
       rename(Area_Name = area_field_name)
   }
