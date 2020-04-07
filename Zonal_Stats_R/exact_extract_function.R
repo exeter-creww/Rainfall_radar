@@ -12,7 +12,7 @@ sprintf("start time = %s", s_time)
 #----------- Project Set Up --------------------------
 
 #! /usr/bin/Rscript
-.libPaths("C:/Program Files/R/R-3.6.1/library")
+#.libPaths("C:/Program Files/R/R-3.6.1/library")
 # Check that the required packages are installed
 list.of.packages <- c("exactextractr", "tidyverse", "raster", "sf", "rgdal", "lubridate", "foreach", "doParallel", "padr", "tcltk")
 
