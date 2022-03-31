@@ -12,13 +12,16 @@ sprintf("start time = %s", s_time)
 #----------- Project Set Up --------------------------
 
 #! /usr/bin/Rscript
-.libPaths("C:/Program Files/R/R-3.6.1/library")
+# .libPaths("C:/Program Files/R/R-3.6.1/library")
 # Check that the required packages are installed
-list.of.packages <- c("exactextractr", "tidyverse", "raster", "sf", "rgdal", "lubridate", "foreach", "doParallel", "padr", "tcltk")
+list.of.packages <- c("exactextractr", "tidyverse", "raster", "sf", "rgdal", 
+                      "lubridate", "foreach", "doParallel", "padr", "tcltk",
+                      "purrr")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
+library(purrr)
 library(raster)
 library(sf)
 library(rgdal)
@@ -36,26 +39,71 @@ options(scipen=999) # turns off scientific notation
 Data_folder <- "D:/MetOfficeRadar_Data/UK_1km_Rain_Radar_Processed"  # Folder containing all Rainfall Rasters
 
 # bound_shp <- "C:/HG_Projects/Event_Sep_R/Catchment_Area/Out_Catchments/Bud_Brook_Catch.shp"  # An input polygon file
+# bound_shp <- "C:/HG_Projects/SideProjects/Nic_Rainfall/Crowford_catchment_shp/Crowford_Reproj.shp" # Nicola's file
+
 # bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/ResGroup_Catchments/shp_file/Res_Group_Catchments.shp"
 # bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/Res_Group_V2/run_shp/RG_Catchments_V2.shp" # this one is all the new files ben sent plus ac and sp.
 # bound_shp <-"C:/HG_Projects/SideProjects/Radar_Outputs/New_catchments/Combined_Shps/HH_FTP_combined.shp"
-bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_Cornwall/shps/WV_catchment_Reproj.shp"
+# bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_Cornwall/shps/WV_catchment_Reproj.shp"
+# bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_FOD/shps/fod_ws_2.shp"
+# bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_York/shps/Yorkshire_Beaver_Watershed.shp"
+# bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/MattH_Fields/shps/Field_sitesPPs.shp"
+# bound_shp <- "C:/HG_Projects/Pophams_Rain/Catchment_Delin/vectors/Pophams_Catch.gpkg"
+# bound_shp <- "C:/HG_Projects/SideProjects/Radar_Outputs/Pia_Rainfall/Data/Areas_merged.gpkg"
+# bound_shp <- "C:/HG_Projects/SideProjects/Alan_NFM_RAIN/In_Area/OtteryNFMcatchment.shp"
+bound_shp <-"C:/HG_Projects/SideProjects/ALAN_york_update/AOI/Yorks_FOD_join.gpkg"
 
 # Export_folder <- "C:/HG_Projects/SideProjects/Radar_Test_Data/Test_Exports3"  # An output folder for saving
 # Export_folder <-("C:/HG_Projects/Event_Sep_R/Radar_Rain_Exports_Correct")
-Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_Cornwall/woodval_exports"
+# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_FOD/FOD_exports"
+# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Alan_York/YorkBeav_exports"
+# Export_folder<- "C:/HG_Projects/SideProjects/Nic_Rainfall/Rainfall_Out" # Nic's output
+# Export_folder <- "C:/HG_Projects/East_Bud_Hydrology_Proj/4_Join_Rain_to_Q/rain_data_in"
+# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/MattH_Fields/MattH_rain_exports"
+# Export_folder <- "C:/HG_Projects/Pophams_Rain/Extracted_Rain"
+# Export_folder <- "C:/HG_Projects/SideProjects/Radar_Outputs/Pia_Rainfall/Rainfall_Out0821"
+# Export_folder <- "C:/HG_Projects/SideProjects/Alan_NFM_RAIN/exports"
+Export_folder <- "C:/HG_Projects/SideProjects/ALAN_york_update/exports"
 
+# area_field_name <- NA # This is the name of the attribute you want to use to name your files.
+#                              # if you only have one shape you can set as NA and a default of AOI is used
 
-area_field_name <- "Name" # This is the name of the attribute you want to use to name your files.
-                             # if you only have one shape you can set as NA and a default of AOI is used
+area_field_name <- 'layer' #'WB_NAME'
 
 # start_date <- 201908050000 # Let's test things... 200404062320 #
 # end_date   <- 201908150000
 
-start_date <- 201511010000
-end_date   <- 202001312355
+# start_date   <- 201801010000
+# end_date     <- 202005302355
+
+# start_date   <- 200907090000 # pophams ts.
+# end_date     <- 202003112345
+
+# start_date <- 200404062250  # Earliest time step
+# end_date   <- 202003302355  # latest time step
+
+#pia times
+# start_date <- 201001010000
+# end_date   <- 201912312355
+
+# Alan - Ottery NFM
+# start_date   <- 201811302355
+# end_date     <- 202012312355
+
+# Pia 08/21 request
+# start_date <- 200404062250
+# end_date   <- 200912312355
+
+#Alan FOD York Update
+start_date <- 202001010000
+end_date   <- 202110302355 # laest date
+
+# choose time steps
+# timestep <- '1 hour' # The desired timestep to aggregate files requires lubridate time format.
 
 timestep <- '15 min' # The desired timestep to aggregate files requires lubridate time format.
+
+# timestep <- '1 day'
 
 EPSG <- 27700  # If working in UK and using MetOffice Rain Radar data leave this as 27700
 
@@ -83,17 +131,14 @@ if (isFALSE(dir.exists(folder_Xmin))){
 # --------------- check polygon features --------------------------------------------------
 
 shape <- read_sf(dsn = bound_shp)                                                      # Read in polygon(s)
+CRS <- st_crs(shape)$epsg
 
-epsg_df <- data.frame(make_EPSG())                                                     # get epsg dataframe from rgdal to compare proj4 and epsg codes
-
-CRS <- as.numeric(na.omit(epsg_df$code[epsg_df$prj4 == crs(shape)]))                   # get the epsg code for the provided polgon
-
-if (CRS != EPSG){                                                                      # give message if original polygon not in OSGB.
+if ( CRS != EPSG){                                                                    # give message if original polygon not in OSGB.
   print("Supplied polygons not in correct CRS - transforming now...")
+  shape <- st_transform(shape, crs = EPSG)                                            # transform to correct EPSG if incorrect.
 }
 
-shape <- st_transform(shape, crs = EPSG)                                                # transform anyway to clarify epsg code if NA
-
+                                               
 count <-  nrow(shape)
 
 if (count == 0) {                                                                      # check number of features in polygon and assign correct naming column
@@ -229,7 +274,7 @@ Start_val <- convert_time(start_date)
 End_val <- convert_time(end_date)
 
 
-for (tab in table_list){
+create_csvs <- function(tab){
   
   name <- tab$Area_Name[1]
   
@@ -262,6 +307,8 @@ for (tab in table_list){
                                          as.character(paste(end_date, "csv", sep = ".")), sep = "_")))
 }
 
+table_list %>%
+  purrr::walk(., ~create_csvs(.))
 
 sprintf("script completed check %s for results", Export_folder)
 print(Sys.time() - s_time)
