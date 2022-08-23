@@ -19,8 +19,11 @@ def main():
     # login to FTP
     f = ftplib.FTP("ftp.ceda.ac.uk", "****UserName****", "****Password*****")
 
+    Year1 = input('Year start: ')
+    Year2 = input('Year end: ')
+
     # loop through years
-    for year in tqdm(range(2020, 2021)):
+    for year in tqdm(range(int(Year1), int(Year2))):
 
         # loop through months
         for month in range(1, 13):
