@@ -165,7 +165,7 @@ class Nimrod:
         check_record_len(infile, 512, "header end")
 
         # Extract strings and make duplicate entries to give meaningful names
-        chars = characters.tostring()
+        chars = characters.tobytes()
         self.units = chars[0:8]
         self.data_source = chars[8:32]
         self.title = chars[32:55]
